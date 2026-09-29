@@ -2,7 +2,7 @@
 // editable in the app; this only seeds a fresh install (or a reset).
 
 const SEED = {
-  version: 1,
+  version: 2,
 
   categories: [
     { id: 'faith', name: 'Faith & Spirit' },
@@ -13,8 +13,14 @@ const SEED = {
     { id: 'life', name: 'Health & Rhythms' },
   ],
 
-  // priority: 'essential' | 'important' | 'preference'
+  // priority: 'absolute' | 'essential' | 'important' | 'preference'
   values: [
+    {
+      id: 'v-pray-daily', category: 'faith', priority: 'absolute',
+      title: 'Prays together with me every day',
+      desc: 'An absolute. We pray together every single day, no matter what.',
+      lookFor: 'Does she already have a real prayer life? Does she pray out loud with others easily, or only privately? When we\'re together, does she want to pray?',
+    },
     {
       id: 'v-loves-god', category: 'faith', priority: 'essential',
       title: 'Deep woman of faith who loves God deeply',
@@ -112,6 +118,12 @@ const SEED = {
       lookFor: 'Do I feel more like myself or less around her?',
     },
     {
+      id: 'v-meld', category: 'us', priority: 'essential',
+      title: 'We meld well together',
+      desc: 'Our lives, rhythms, and personalities fit together naturally.',
+      lookFor: 'When we do ordinary things together (serving, errands, time with friends), does it flow, or does it take effort?',
+    },
+    {
       id: 'v-affection', category: 'us', priority: 'important',
       title: 'Affectionate, physical touch, centered around me',
       desc: 'Mutual attraction too — held with restraint for now, not dwelt on.',
@@ -128,6 +140,12 @@ const SEED = {
       title: 'Takes care of her body — fit and healthy',
       desc: 'Stewards her health well.',
       lookFor: 'Is this a rhythm in her life, or a phase?',
+    },
+    {
+      id: 'v-exercise', category: 'life', priority: 'preference',
+      title: 'Enjoys exercising together',
+      desc: 'Would be fun to work out together.',
+      lookFor: 'Does she enjoy being active with others?',
     },
     {
       id: 'v-structure', category: 'life', priority: 'important',
@@ -153,6 +171,7 @@ const SEED = {
       'Sharing household chores',
     ],
     together: [
+      'Pray together every day, no matter what',
       'Traveling together in kingdom work, kids along',
       'Rooted in a rich church community',
       'Weekly check-ins: how are we doing, how can we grow',
@@ -176,6 +195,7 @@ const SEED = {
       'Like the kids at Shore Break: really impressive children',
     ],
     family: [
+      'Daily prayer together as a family',
       'Homeschooling, supported by a rich church community',
       'Kids come along in the mission',
       'Weekly rhythms and check-ins, consolidated and tracked',
@@ -192,6 +212,18 @@ const SEED = {
   },
 
   reflections: [],
+};
+
+// Additions made after the first release, applied once to existing installs
+// so their edits are kept. Keyed by the version that introduced them.
+const SEED_UPDATES = {
+  2: {
+    values: ['v-pray-daily', 'v-meld', 'v-exercise'],
+    lists: {
+      'roles.together': ['Pray together every day, no matter what'],
+      'vision.family': ['Daily prayer together as a family'],
+    },
+  },
 };
 
 const VERSES = {

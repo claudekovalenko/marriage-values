@@ -6,6 +6,7 @@
   --line: #e6ddd0;
   --accent: #8a5a3b;
   --accent-ink: #fff;
+  --absolute: #5b2e1f;
   --essential: #8a5a3b;
   --important: #5f7a61;
   --preference: #8a8479;
@@ -29,6 +30,7 @@
     --line: #37332d;
     --accent: #d4a27f;
     --accent-ink: #1b1a17;
+    --absolute: #f0c9a8;
     --essential: #d4a27f;
     --important: #9fbf9f;
     --preference: #a39a8f;
@@ -112,6 +114,7 @@ details p { color: var(--muted); font-size: 15px; }
   border-radius: 99px;
   color: var(--surface);
 }
+.badge.absolute { background: var(--absolute); }
 .badge.essential { background: var(--essential); }
 .badge.important { background: var(--important); }
 .badge.preference { background: var(--preference); }

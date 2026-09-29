@@ -9,12 +9,32 @@ function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return upgrade(JSON.parse(raw));
   } catch (e) { /* fall through to seed */ }
   return clone(SEED);
 }
 
+// Bring in starter content added since this device's data was created.
+function upgrade(data) {
+  for (let v = (data.version ?? 1) + 1; v <= SEED.version; v++) {
+    const u = SEED_UPDATES[v];
+    if (!u) continue;
+    for (const id of u.values ?? []) {
+      const seeded = SEED.values.find(x => x.id === id);
+      if (seeded && !data.values.some(x => x.id === id)) data.values.unshift(clone(seeded));
+    }
+    for (const [path, items] of Object.entries(u.lists ?? {})) {
+      const [a, b] = path.split('.');
+      const list = data[a]?.[b];
+      if (list) for (const it of items) if (!list.includes(it)) list.unshift(it);
+    }
+  }
+  data.version = SEED.version;
+  return data;
+}
+
 let state = load();
+save();
 
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -50,11 +70,12 @@ function fmtDate(iso) {
 }
 
 const PRIORITIES = [
+  { id: 'absolute', name: 'Non-negotiable' },
   { id: 'essential', name: 'Essential' },
   { id: 'important', name: 'Important' },
   { id: 'preference', name: 'Preference' },
 ];
-const PRIORITY_RANK = { essential: 0, important: 1, preference: 2 };
+const PRIORITY_RANK = { absolute: 0, essential: 1, important: 2, preference: 3 };
 
 const STATUSES = [
   { id: 'seen', name: 'Clearly seen' },
@@ -175,6 +196,7 @@ function renderValues() {
   if (orphans.length) groups.push({ id: '_other', name: 'Other', items: orphans });
 
   view.innerHTML = `
+    <p class="intro">Who she is today: what I'm looking for now.</p>
     <div class="chips" role="group" aria-label="Filter by priority">
       <button class="chip" data-filter="all" aria-pressed="${valuesFilter === 'all'}">All <b>${state.values.length}</b></button>
       ${PRIORITIES.map(p => `
@@ -279,7 +301,7 @@ function editValue(id) {
 
 function renderRoles() {
   view.innerHTML = `
-    <p class="intro">Still working this out. Write it down, then keep refining it with prayer and wise counsel.</p>
+    <p class="intro">What our home could look like in the future. Still working this out; keep refining it with prayer and wise counsel.</p>
     ${listEditor('Her', ['roles', 'her'])}
     ${listEditor('Me', ['roles', 'me'])}
     ${listEditor('Together', ['roles', 'together'])}
@@ -520,7 +542,7 @@ function renderMore() {
       const data = JSON.parse(await file.text());
       if (!Array.isArray(data.values) || !data.roles || !data.vision) throw new Error('bad file');
       if (!confirm('Replace everything on this device with this backup?')) return;
-      state = { ...clone(SEED), ...data, reflections: data.reflections ?? [] };
+      state = upgrade({ ...clone(SEED), version: 1, ...data, reflections: data.reflections ?? [] });
       save();
       toast('Backup restored');
       renderMore();
