@@ -1,5 +1,5 @@
 // Offline-first app shell. Bump CACHE when shipping changes.
-const CACHE = 'discernment-v2';
+const CACHE = 'discernment-v3';
 const SHELL = [
   './',
   'index.html',

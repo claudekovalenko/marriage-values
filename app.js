@@ -65,6 +65,37 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2200);
 }
 
+// In-page replacement for confirm()/prompt(), which some hosts block.
+// Resolves to true/false, or to the entered text (null if cancelled) when `value` is given.
+function ask(message, { ok = 'OK', danger = false, value } = {}) {
+  const d = $('#ask');
+  const withInput = value !== undefined;
+  d.innerHTML = `
+    <form method="dialog" class="sheet">
+      <p class="ask-msg">${esc(message)}</p>
+      ${withInput ? `<input id="ask-input" value="${esc(value)}" autocomplete="off">` : ''}
+      <div class="actions">
+        <span></span>
+        <div>
+          <button type="button" class="btn" value="cancel">Cancel</button>
+          <button type="submit" class="btn ${danger ? 'danger-fill' : 'primary'}">${esc(ok)}</button>
+        </div>
+      </div>
+    </form>`;
+  return new Promise(resolve => {
+    let result = withInput ? null : false;
+    d.querySelector('[value=cancel]').addEventListener('click', () => d.close());
+    d.querySelector('form').addEventListener('submit', e => {
+      e.preventDefault();
+      result = withInput ? $('#ask-input', d).value : true;
+      d.close();
+    });
+    d.addEventListener('close', () => resolve(result), { once: true });
+    d.showModal();
+    if (withInput) $('#ask-input', d).select();
+  });
+}
+
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -276,8 +307,8 @@ function editValue(id) {
 
   const form = $('#value-form', dialog);
   $('#cancel', dialog).addEventListener('click', () => dialog.close());
-  $('#del', dialog)?.addEventListener('click', () => {
-    if (!confirm('Delete this value?')) return;
+  $('#del', dialog)?.addEventListener('click', async () => {
+    if (!await ask('Delete this value?', { ok: 'Delete', danger: true })) return;
     state.values = state.values.filter(x => x.id !== id);
     save();
     dialog.close();
@@ -468,15 +499,15 @@ function renderReflection(id) {
   });
   $('#r-notes').addEventListener('input', e => { r.notes = e.target.value; touch(); });
   $('#r-prayer').addEventListener('input', e => { r.prayer = e.target.value; touch(); });
-  $('#rename').addEventListener('click', () => {
-    const name = prompt('Name or initials', r.name)?.trim();
+  $('#rename').addEventListener('click', async () => {
+    const name = (await ask('Name or initials', { ok: 'Rename', value: r.name }))?.trim();
     if (!name) return;
     r.name = name;
     touch();
     renderReflection(id);
   });
-  $('#delete').addEventListener('click', () => {
-    if (!confirm(`Delete the reflection for ${r.name}? This can't be undone.`)) return;
+  $('#delete').addEventListener('click', async () => {
+    if (!await ask(`Delete the reflection for ${r.name}? This can't be undone.`, { ok: 'Delete', danger: true })) return;
     state.reflections = state.reflections.filter(x => x.id !== id);
     save();
     location.hash = 'reflect';
@@ -492,7 +523,9 @@ function renderMore() {
       <p>Everything stays on this device. Nothing is sent anywhere. Export a backup now and then, especially before switching phones.</p>
       <div class="row-actions">
         <button class="btn" id="export">Export backup</button>
-        <label class="btn">Import backup<input type="file" id="import" accept="application/json" hidden></label>
+        <button class="btn" id="copy">Copy backup</button>
+        <label class="btn">Import backup<input type="file" id="import" accept="application/json,.json" hidden></label>
+        <button class="btn" id="paste-import">Paste backup</button>
       </div>
     </section>
 
@@ -535,21 +568,38 @@ function renderMore() {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
+  $('#copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(JSON.stringify(state)).then(
+      () => toast('Backup copied. Paste it into a note to keep it.'),
+      () => toast('Copying isn\'t allowed here. Use Export instead.'));
+  });
+
+  $('#paste-import').addEventListener('click', async () => {
+    const text = await ask('Paste a copied backup', { ok: 'Restore', value: '' });
+    if (text) restore(text);
+  });
+
   $('#import').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      if (!Array.isArray(data.values) || !data.roles || !data.vision) throw new Error('bad file');
-      if (!confirm('Replace everything on this device with this backup?')) return;
-      state = upgrade({ ...clone(SEED), version: 1, ...data, reflections: data.reflections ?? [] });
-      save();
-      toast('Backup restored');
-      renderMore();
-    } catch (err) {
-      toast('That file isn\'t a valid backup');
-    }
+    restore(await file.text());
   });
+
+  async function restore(text) {
+    let data;
+    try {
+      data = JSON.parse(text);
+      if (!Array.isArray(data.values) || !data.roles || !data.vision) throw new Error('bad backup');
+    } catch (err) {
+      toast('That isn\'t a valid backup');
+      return;
+    }
+    if (!await ask('Replace everything on this device with this backup?', { ok: 'Replace', danger: true })) return;
+    state = upgrade({ ...clone(SEED), version: 1, ...data, reflections: data.reflections ?? [] });
+    save();
+    toast('Backup restored');
+    renderMore();
+  }
 
   const cats = $('#cats');
   cats.querySelectorAll('textarea').forEach(ta => {
@@ -557,10 +607,10 @@ function renderMore() {
     ta.addEventListener('input', () => { state.categories[+ta.dataset.i].name = ta.value; save(); });
     ta.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ta.blur(); } });
   });
-  cats.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', () => {
+  cats.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', async () => {
     const c = state.categories[+btn.dataset.remove];
     const used = state.values.filter(v => v.category === c.id).length;
-    if (used && !confirm(`${used} value(s) use "${c.name}". They'll move to "Other". Remove anyway?`)) return;
+    if (used && !await ask(`${used} value(s) use "${c.name}". They'll move to "Other". Remove anyway?`, { ok: 'Remove', danger: true })) return;
     state.categories.splice(+btn.dataset.remove, 1);
     save();
     renderMore();
@@ -574,14 +624,14 @@ function renderMore() {
     renderMore();
   });
 
-  $('#reset').addEventListener('click', () => {
-    if (!confirm('Replace your values, roles, and vision with the starter content?')) return;
+  $('#reset').addEventListener('click', async () => {
+    if (!await ask('Replace your values, roles, and vision with the starter content?', { ok: 'Restore', danger: true })) return;
     state = { ...clone(SEED), reflections: state.reflections };
     save();
     toast('Starter content restored');
   });
-  $('#wipe').addEventListener('click', () => {
-    if (!confirm('Erase all values, roles, vision, and reflections on this device?')) return;
+  $('#wipe').addEventListener('click', async () => {
+    if (!await ask('Erase all values, roles, vision, and reflections on this device?', { ok: 'Erase', danger: true })) return;
     state = clone(SEED);
     save();
     toast('Everything reset');

@@ -18,11 +18,11 @@
   --radius: 16px;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #1b1a17;
     --surface: #25231f;
     --text: #ede6dc;
@@ -39,7 +39,28 @@
     --unknown: #6e6860;
     --concern: #e07a63;
     --none: #332f2a;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #1b1a17;
+  --surface: #25231f;
+  --text: #ede6dc;
+  --muted: #a39a8f;
+  --line: #37332d;
+  --accent: #d4a27f;
+  --accent-ink: #1b1a17;
+  --absolute: #f0c9a8;
+  --essential: #d4a27f;
+  --important: #9fbf9f;
+  --preference: #a39a8f;
+  --seen: #8fb58f;
+  --some: #d9b86c;
+  --unknown: #6e6860;
+  --concern: #e07a63;
+  --none: #332f2a;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -135,6 +156,8 @@ details p { color: var(--muted); font-size: 15px; }
 .btn.small { padding: 8px 14px; font-size: 14px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.danger { color: var(--concern); }
+.btn.danger-fill { background: var(--concern); border-color: var(--concern); color: var(--surface); }
+.ask-msg { margin: 0; font-size: 17px; }
 .btn.block { width: 100%; margin-top: 16px; padding: 14px; }
 .link { background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; padding: 4px; }
 .icon-btn {
@@ -206,9 +229,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--muted); cursor: pointer;
 }
-.seg-control button[aria-checked="true"] { color: #fff; border-color: transparent; font-weight: 600; }
+.seg-control button[aria-checked="true"] { color: var(--surface); border-color: transparent; font-weight: 600; }
 .seg-control .seen[aria-checked="true"] { background: var(--seen); }
-.seg-control .some[aria-checked="true"] { background: var(--some); color: #2b2723; }
+.seg-control .some[aria-checked="true"] { background: var(--some); color: var(--text); }
 .seg-control .unknown[aria-checked="true"] { background: var(--unknown); }
 .seg-control .concern[aria-checked="true"] { background: var(--concern); }
 .mark textarea { font-size: 15px; overflow: hidden; }
